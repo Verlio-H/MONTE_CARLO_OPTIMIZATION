@@ -1,24 +1,20 @@
-# Python build artifacts
-build/
-dist/
-*.egg-info/
+build
+dist
+*.egg_info
+bin
+lib
 
-# Python compiled files
-__pycache__/
+__pycache__
 *.pyc
 *.so
+*.pyd
 
-# IDE and OS-specific files
-.idea/
-.vscode/
 .DS_Store
+.vscode
+.idea
+.conda
+.ipynb_checkpoints
 
-# Virtual environment
-.conda/
-
-# Jupyter Notebook files
-.ipynb_checkpoints/
-
-# Other ignored files
+*.cfg
 *.log
-RESULTS/
+RESULTS
