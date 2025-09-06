@@ -92,6 +92,9 @@ double price_american_put_lsm_cpp(
         std::vector<int> in_the_money_paths;
         std::vector<double> x_itm, y_itm;
 
+        in_the_money_paths.reserve(num_paths);
+        x_itm.reserve(num_paths);
+        y_itm.reserve(num_paths);
         for (int i = 0; i < num_paths; ++i) {
             if (K - S[i][t] > 0.0) {
                 in_the_money_paths.push_back(i);
