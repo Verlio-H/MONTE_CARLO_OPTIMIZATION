@@ -7,8 +7,31 @@
 #include <algorithm>
 #include <iostream>
 
+struct vec3 {
+    union {
+        double vals[3];
+        struct {
+            union {
+                double x;
+                double r;
+                double c0;
+            };
+            union {
+                double y;
+                double g;
+                double c1;
+            };
+            union {
+                double z;
+                double b;
+                double c2;
+            };
+        };
+    };
+};
+
 // Simple least-squares polynomial fit (degree 2)
-std::vector<double> polyfit(const std::vector<double>& x, const std::vector<double>& y) {
+vec3 polyfit(const std::vector<double>& x, const std::vector<double>& y) {
     size_t n = x.size();
     double S_x = 0, S_y = 0, S_xx = 0, S_xy = 0, S_xxx = 0, S_xxy = 0, S_xxxx = 0;
 
@@ -25,43 +48,42 @@ std::vector<double> polyfit(const std::vector<double>& x, const std::vector<doub
         S_xxxx += xi_2 * xi_2;
     }
 
-    double A[3][3] = {
+    vec3 A[3] = {
         {static_cast<double>(n), S_x, S_xx},
         {S_x, S_xx, S_xxx},
         {S_xx, S_xxx, S_xxxx}
     };
 
-    double b[3] = {S_y, S_xy, S_xxy};
+    vec3 b = {S_y, S_xy, S_xxy};
     
     // Simple Gaussian elimination for 3x3 system
     for (int i = 0; i < 3; ++i) {
         int pivot = i;
         for (int j = i + 1; j < 3; ++j) {
-            if (std::abs(A[j][i]) > std::abs(A[pivot][i])) {
+            if (std::abs(A[j].vals[i]) > std::abs(A[pivot].vals[i])) {
                 pivot = j;
             }
         }
         std::swap(A[i], A[pivot]);
-        std::swap(b[i], b[pivot]);
+        std::swap(b.vals[i], b.vals[pivot]);
         for (int j = i + 1; j < 3; ++j) {
-            double factor = A[j][i] / A[i][i];
+            double factor = A[j].vals[i] / A[i].vals[i];
             for (int k = i; k < 3; ++k) {
-                A[j][k] -= factor * A[i][k];
+                A[j].vals[k] -= factor * A[i].vals[k];
             }
-            b[j] -= factor * b[i];
+            b.vals[j] -= factor * b.vals[i];
         }
     }
 
-    std::vector<double> coeffs(3);
+    vec3 coeffs = {};
     for (int i = 2; i >= 0; --i) {
         double sum = 0;
         for (int j = i + 1; j < 3; ++j) {
-            sum += A[i][j] * coeffs[j];
+            sum += A[i].vals[j] * coeffs.vals[j];
         }
-        coeffs[i] = (b[i] - sum) / A[i][i];
+        coeffs.vals[i] = (b.vals[i] - sum) / A[i].vals[i];
     }
-    // Return in numpy order (highest power first)
-    return {coeffs[2], coeffs[1], coeffs[0]};
+    return coeffs;
 }
 
 
@@ -113,12 +135,12 @@ double price_american_put_lsm_cpp(
 
         if (x_itm.empty()) continue;
 
-        std::vector<double> coeffs = polyfit(x_itm, y_itm);
+        vec3 coeffs = polyfit(x_itm, y_itm);
         
         for (size_t i = 0; i < in_the_money_paths.size(); ++i) {
             int path_idx = in_the_money_paths[i];
             double x_val = x_itm[i];
-            double continuation_value = coeffs[0] * x_val * x_val + coeffs[1] * x_val + coeffs[2];
+            double continuation_value = coeffs.c2 * x_val * x_val + coeffs.c1 * x_val + coeffs.c0;
             double intrinsic_value = std::max(0.0, K - S[path_idx][t]);
 
             if (intrinsic_value > continuation_value) {
