@@ -50,5 +50,5 @@ if(MSVC)
     target_compile_options(lsm_cpp_backend PRIVATE /O2 /arch:AVX2)
 else()
     # GCC/Clang flags
-    target_compile_options(lsm_cpp_backend PRIVATE -O3 -march=native)
+    target_compile_options(lsm_cpp_backend PRIVATE -O3 -march=native -flto)
 endif()
