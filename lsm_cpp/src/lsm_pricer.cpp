@@ -145,8 +145,12 @@ double price_american_put_lsm_cpp(
 
             if (intrinsic_value > continuation_value) {
                 cash_flows[path_idx][t] = intrinsic_value;
-                for (int j = t + 1; j <= num_steps; ++j) {
-                    cash_flows[path_idx][j] = 0.0;
+                if (std::numeric_limits<double>::is_iec559) {
+                    memset(cash_flows[path_idx].data() + t + 1, 0, (num_steps - t) * sizeof(double));
+                } else {
+                    for (int j = t + 1; j <= num_steps; ++j) {
+                        cash_flows[path_idx][j] = 0.0;
+                    }
                 }
             }
         }
