@@ -35,7 +35,7 @@ vec3 polyfit(const std::vector<double>& x, const std::vector<double>& y) {
     size_t n = x.size();
     double S_x = 0, S_y = 0, S_xx = 0, S_xy = 0, S_xxx = 0, S_xxy = 0, S_xxxx = 0;
 
-    for (int i = 0; i < n; ++i) {
+    for (size_t i = 0; i < n; ++i) {
         double xi = x[i];
         double yi = y[i];
         double xi_2 = xi * xi;
@@ -49,12 +49,12 @@ vec3 polyfit(const std::vector<double>& x, const std::vector<double>& y) {
     }
 
     vec3 A[3] = {
-        {static_cast<double>(n), S_x, S_xx},
-        {S_x, S_xx, S_xxx},
-        {S_xx, S_xxx, S_xxxx}
+        (vec3){.x = static_cast<double>(n), .y = S_x, .z = S_xx},
+        (vec3){.x = S_x, .y = S_xx, .z = S_xxx},
+        (vec3){.x = S_xx, .y = S_xxx, .z = S_xxxx}
     };
 
-    vec3 b = {S_y, S_xy, S_xxy};
+    vec3 b = (vec3){.x = S_y, .y = S_xy, .z = S_xxy};
     
     // Simple Gaussian elimination for 3x3 system
     for (int i = 0; i < 3; ++i) {
@@ -85,7 +85,6 @@ vec3 polyfit(const std::vector<double>& x, const std::vector<double>& y) {
     }
     return coeffs;
 }
-
 
 double price_american_put_lsm_cpp(
     double S0, double K, double T, double r, double sigma,
