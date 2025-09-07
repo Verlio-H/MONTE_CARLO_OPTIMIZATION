@@ -6,6 +6,8 @@
 #include <random>
 #include <algorithm>
 #include <iostream>
+#include <cstring>
+#include <cstdlib>
 
 struct vec3 {
     union {
@@ -31,8 +33,7 @@ struct vec3 {
 };
 
 // Simple least-squares polynomial fit (degree 2)
-vec3 polyfit(const std::vector<double>& x, const std::vector<double>& y) {
-    size_t n = x.size();
+vec3 polyfit(const double *x, const double *y, size_t n) {
     double S_x = 0, S_y = 0, S_xx = 0, S_xy = 0, S_xxx = 0, S_xxy = 0, S_xxxx = 0;
 
     for (size_t i = 0; i < n; ++i) {
@@ -90,79 +91,74 @@ double price_american_put_lsm_cpp(
     double S0, double K, double T, double r, double sigma,
     int num_paths, int num_steps, int seed) {
     
-    double dt = T / static_cast<double>(num_steps);
+    const double dt = T / static_cast<double>(num_steps);
 
     std::mt19937_64 rng(seed);
     std::normal_distribution<double> dist(0.0, 1.0);
 
-    std::vector<std::vector<double>> S(num_paths, std::vector<double>(num_steps + 1));
+    std::vector<double> S(num_paths * num_steps);
+
+    const double factor1 = (r - 0.5 * sigma * sigma) * dt;
+    const double factor2 = sigma * std::sqrt(dt);
     for (int i = 0; i < num_paths; ++i) {
-        S[i][0] = S0;
-        for (int j = 1; j <= num_steps; ++j) {
+        S[i * num_steps + 0] = S0 * std::exp(factor1 + factor2 * dist(rng));
+        for (int j = 1; j < num_steps; ++j) {
             double Z = dist(rng);
-            S[i][j] = S[i][j - 1] * std::exp((r - 0.5 * sigma * sigma) * dt + sigma * std::sqrt(dt) * Z);
+            S[i * num_steps + j] = S[i * num_steps + j - 1] * std::exp(factor1 + factor2 * Z);
         }
     }
 
-    std::vector<std::vector<double>> cash_flows(num_paths, std::vector<double>(num_steps + 1, 0.0));
-    for (int i = 0; i < num_paths; ++i) {
-        cash_flows[i][num_steps] = std::max(0.0, K - S[i][num_steps]);
+    std::vector<double> exp_vals(num_steps);
+
+    for (int i = 0; i < num_steps; ++i) {
+        exp_vals[i] = std::exp(-r * i * dt);
     }
 
-    for (int t = num_steps - 1; t > 0; --t) {
-        std::vector<int> in_the_money_paths;
-        std::vector<double> x_itm, y_itm;
+    std::vector<double> last_cash_flow(num_paths);
+    std::vector<int> time_cash_flow(num_paths, num_steps - 1);
+    for (int i = 0; i < num_paths; ++i) {
+        last_cash_flow[i] = std::max(0.0, K - S[i * num_steps + num_steps - 1]);
+    }
 
-        in_the_money_paths.reserve(num_paths);
-        x_itm.reserve(num_paths);
-        y_itm.reserve(num_paths);
+    int *in_the_money_paths = (int *)malloc(num_paths * sizeof(int));
+    double *x_itm = (double *)malloc(num_paths * sizeof(double));
+    double *y_itm = (double *)malloc(num_paths * sizeof(double));
+    for (int t = num_steps - 2; t >= 0; --t) {
+        size_t in_the_money_count = 0;
         for (int i = 0; i < num_paths; ++i) {
-            if (K - S[i][t] > 0.0) {
-                in_the_money_paths.push_back(i);
-                x_itm.push_back(S[i][t]);
-                
-                double future_cf = 0.0;
-                for (int j = t + 1; j <= num_steps; ++j) {
-                    if (cash_flows[i][j] > 0.0) {
-                        future_cf = cash_flows[i][j] * std::exp(-r * (j - t) * dt);
-                        break;
-                    }
-                }
-                y_itm.push_back(future_cf);
+            if (K - S[i * num_steps + t] > 0.0) {
+                double future_cf = last_cash_flow[i] * exp_vals[time_cash_flow[i] - t];
+
+                in_the_money_paths[in_the_money_count] = i;
+                x_itm[in_the_money_count] = S[i * num_steps + t];
+                y_itm[in_the_money_count] = future_cf;
+
+                ++in_the_money_count;
             }
         }
 
-        if (x_itm.empty()) continue;
-
-        vec3 coeffs = polyfit(x_itm, y_itm);
+        if (in_the_money_count == 0) continue;
+        vec3 coeffs = polyfit(x_itm, y_itm, in_the_money_count);
         
-        for (size_t i = 0; i < in_the_money_paths.size(); ++i) {
+        for (size_t i = 0; i < in_the_money_count; ++i) {
             int path_idx = in_the_money_paths[i];
             double x_val = x_itm[i];
             double continuation_value = coeffs.c2 * x_val * x_val + coeffs.c1 * x_val + coeffs.c0;
-            double intrinsic_value = std::max(0.0, K - S[path_idx][t]);
+            double intrinsic_value = std::max(0.0, K - S[path_idx * num_steps + t]);
 
             if (intrinsic_value > continuation_value) {
-                cash_flows[path_idx][t] = intrinsic_value;
-                if (std::numeric_limits<double>::is_iec559) {
-                    memset(cash_flows[path_idx].data() + t + 1, 0, (num_steps - t) * sizeof(double));
-                } else {
-                    for (int j = t + 1; j <= num_steps; ++j) {
-                        cash_flows[path_idx][j] = 0.0;
-                    }
-                }
+                last_cash_flow[path_idx] = intrinsic_value;
+                time_cash_flow[path_idx] = t;
             }
         }
     }
+    free(in_the_money_paths);
+    free(x_itm);
+    free(y_itm);
 
     double total_payoff = 0.0;
     for (int i = 0; i < num_paths; ++i) {
-        for (int j = 1; j <= num_steps; ++j) {
-            if (cash_flows[i][j] > 0.0) {
-                total_payoff += cash_flows[i][j] * std::exp(-r * j * dt);
-                break;
-            }
-        }
+        total_payoff += last_cash_flow[i] * exp_vals[time_cash_flow[i]];
     }
 
     return total_payoff / num_paths;
