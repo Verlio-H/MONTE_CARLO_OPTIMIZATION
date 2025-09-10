@@ -25,12 +25,11 @@ cases:
       
     backends:
       - "py"  # We only have the Python backend for now
-      - "numba"  # add this
+      - "numba"
       - "cpp"  # add this
 
-
   - name: "bs_american_put_medium"
-    description: "A more realistic case that takes a few seconds to run."
+    description: "An intermediate case."
     model: "black_scholes"
     payoff: "american_put"
     
@@ -42,11 +41,31 @@ cases:
       sigma: 0.2
       
     simulation:
-      num_paths: 50000   # 5e4
-      num_steps: 100
+      num_paths: 100000   # 5e4
+      num_steps: 200
       seed: 42
       
     backends:
       - "py"
-      - "numba"  # add this
+      - "numba"
       - "cpp"  # add this
+
+  - name: "bs_american_put_large"
+    description: "A case that takes a few seconds to run even with AOT compilation."
+    model: "black_scholes"
+    payoff: "american_put"
+    
+    params:
+      S0: 100.0
+      K: 105.0
+      T: 1.0
+      r: 0.05
+      sigma: 0.2
+      
+    simulation:
+      num_paths: 400000   # 5e4
+      num_steps: 400
+      seed: 42
+      
+    backends:
+      - "cpp"
