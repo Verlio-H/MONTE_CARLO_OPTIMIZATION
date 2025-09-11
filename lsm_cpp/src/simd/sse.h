@@ -13,8 +13,8 @@ using simd_int32 = __m128i;
 using simd_mask = __m128i;
 constexpr simd_float (*simd_fexp)(simd_float) = sse_mathfun_exp_ps;
 constexpr simd_float (*simd_fbroadcast)(float val) = _mm_set_ps1;
-#ifdef __SSE_4_1__
-    #define simd_fget_lane(val, lane) _mm_extract_epi32((val), (lane))
+#ifdef __SSE4_1__
+    #define simd_fget_lane(val, lane) _mm_extract_ps((val), (lane))
 #else
     #define simd_fget_lane(val, lane) (_mm_cvtss_f32((__m128)_mm_shuffle_epi32((__m128i)(val), (lane)*0x55)))
 #endif
