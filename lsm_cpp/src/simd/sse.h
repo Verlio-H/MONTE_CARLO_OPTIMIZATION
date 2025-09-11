@@ -69,13 +69,13 @@ simd_float simd_fgather_int32_masked(float const *base, simd_int32 indices, floa
 }
 void simd_fscatter_int32_masked(float *base, simd_int32 indices, simd_float values, simd_mask mask) {
     uint32_t lane0 = get_x(mask);
-    if (lane0) *(base + get_x(indices)) = get_x((__m128i)values);
+    if (lane0) *(base + get_x(indices)) = simd_fget_lane(values, 0);
     uint32_t lane1 = get_y(mask);
-    if (lane1) *(base + get_y(indices)) = get_y((__m128i)values);
+    if (lane1) *(base + get_y(indices)) = simd_fget_lane(values, 1);
     uint32_t lane2 = get_z(mask);
-    if (lane2) *(base + get_z(indices)) = get_z((__m128i)values);
+    if (lane2) *(base + get_z(indices)) = simd_fget_lane(values, 2);
     uint32_t lane3 = get_w(mask);
-    if (lane3) *(base + get_w(indices)) = get_w((__m128i)values);
+    if (lane3) *(base + get_w(indices)) = simd_fget_lane(values, 3);
 }
 void simd_iscatter_scalar_int32_masked(int *base, simd_int32 indices, int value, simd_mask mask) {
     uint32_t lane0 = get_x(mask);
