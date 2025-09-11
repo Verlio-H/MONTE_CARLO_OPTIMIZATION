@@ -19,7 +19,7 @@ simd_float simd_fmax(simd_float a, simd_float b) { return std::max(a, b); }
 simd_mask simd_fgt_mask(simd_float a, simd_float b) { return a > b; }
 float simd_fhadd(simd_float val) { return val; }
 simd_float simd_fgather_int32(float const *base, simd_int32 indices) { return *(base + indices); }
-simd_float simd_fgather_int32_masked(float const *base, simd_int32 indices, int value, simd_mask mask) {
+simd_float simd_fgather_int32_masked(float const *base, simd_int32 indices, float value, simd_mask mask) {
     if (mask) return *(base + indices);
     return value; 
 }
