@@ -228,12 +228,12 @@ double price_american_put_lsm_cpp(
     const float factor1 = (r - 0.5 * sigma * sigma) * dt;
     const float factor2 = sigma * std::sqrt(dt);
     for (int i = 0; i < num_paths; ++i) {
-        S[i] = S0 * std::expf(factor1 + factor2 * dist(rng));
+        S[i] = S0 * expf(factor1 + factor2 * dist(rng));
     }
     for (int j = 1; j < num_steps; ++j) {
         for (int i = 1; i < num_paths; ++i) {
             double Z = dist(rng);
-            S[j * num_paths + i] = S[(j - 1) * num_paths + i] * std::expf(factor1 + factor2 * Z);
+            S[j * num_paths + i] = S[(j - 1) * num_paths + i] * expf(factor1 + factor2 * Z);
         }
     }
 
