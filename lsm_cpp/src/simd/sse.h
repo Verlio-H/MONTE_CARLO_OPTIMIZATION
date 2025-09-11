@@ -13,7 +13,11 @@ using simd_int32 = __m128i;
 using simd_mask = __m128i;
 constexpr simd_float (*simd_fexp)(simd_float) = sse_mathfun_exp_ps;
 constexpr simd_float (*simd_fbroadcast)(float val) = _mm_set_ps1;
-#define simd_fget_lane(val, lane) vgetq_lane_f32(val, lane)
+#ifdef __SSE_4_1__
+    #define simd_fget_lane(val, lane) _mm_extract_epi32((val), (lane))
+#else
+    #define simd_fget_lane(val, lane) _mm_cvtsi128_si32(_mm_shuffle_epi32((vec), (lane)*0x55)
+#endif
 constexpr simd_float (*simd_fadd)(simd_float a, simd_float b) = _mm_add_ps;
 constexpr simd_float (*simd_fsub)(simd_float a, simd_float b) = _mm_sub_ps;
 constexpr simd_float (*simd_fmul)(simd_float a, simd_float b) = _mm_mul_ps;
@@ -30,9 +34,9 @@ inline int get_x(__m128i vec) { return _mm_cvtsi128_si32(vec); }
     inline int get_z(__m128i vec) { return _mm_extract_epi32(vec, 2); }
     inline int get_w(__m128i vec) { return _mm_extract_epi32(vec, 3); }
 #else
-    inline int get_y(__m128i vec) { return _mm_cvtsi128_si32(_mm_shuffle_epi32(vec,0x55)); }
-    inline int get_z(__m128i vec) { return _mm_cvtsi128_si32(_mm_shuffle_epi32(vec,0xAA)); }
-    inline int get_w(__m128i vec) { return _mm_cvtsi128_si32(_mm_shuffle_epi32(vec,0xFF)); }
+    inline int get_y(__m128i vec) { return _mm_cvtsi128_si32(_mm_shuffle_epi32(vec, 0x55)); }
+    inline int get_z(__m128i vec) { return _mm_cvtsi128_si32(_mm_shuffle_epi32(vec, 0xAA)); }
+    inline int get_w(__m128i vec) { return _mm_cvtsi128_si32(_mm_shuffle_epi32(vec, 0xFF)); }
 #endif
 
 
