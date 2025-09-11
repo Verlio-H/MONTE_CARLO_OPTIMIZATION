@@ -43,7 +43,14 @@ This derived source file is released under the zlib license.
   (this is the zlib license)
 */
 #pragma once
-#include <pmmintrin.h>
+
+#if defined(__SSE4_1__)
+    #include <smmintrin.h>
+#elif defined(__SSE3__)
+    #include <nmmintrin.h>
+#else
+    #include <pmmintrin.h>
+#endif
  
 inline __m128 sse_mathfun_one_ps() {
     __m128i zeros = _mm_setzero_si128();

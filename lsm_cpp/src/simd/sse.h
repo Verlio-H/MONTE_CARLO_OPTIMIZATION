@@ -85,7 +85,7 @@ void simd_iscatter_scalar_int32_masked(int *base, simd_int32 indices, int value,
 }
 
 
-#define SIMD_INCREASING (vsetq_lane_f32(3, vsetq_lane_f32(2, vsetq_lane_f32(1, vdupq_n_f32(0), 3), 2), 1))
+#define SIMD_INCREASING (_mm_set_ps(0, 1, 2, 3))
 #define SIMD_ITERATE_LANES(__LOOP__) \
     __LOOP__(0); \
     __LOOP__(1); \
