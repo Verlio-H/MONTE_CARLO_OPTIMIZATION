@@ -55,17 +55,17 @@ float simd_fhadd(simd_float val) {
 }
 
 simd_float simd_fgather_int32(float const *base, simd_int32 indices) {
-    return _mm_set_ps(*(base + get_x(indices)),
-                      *(base + get_y(indices)),
+    return _mm_set_ps(*(base + get_w(indices)),
                       *(base + get_z(indices)),
-                      *(base + get_w(indices)));
+                      *(base + get_y(indices)),
+                      *(base + get_x(indices)));
 }
 
 simd_float simd_fgather_int32_masked(float const *base, simd_int32 indices, float def, simd_mask mask) {
-    return _mm_set_ps(get_x(mask) ? *(base + get_x(indices)) : def,
-                      get_y(mask) ? *(base + get_y(indices)) : def,
+    return _mm_set_ps(get_w(mask) ? *(base + get_w(indices)) : def,
                       get_z(mask) ? *(base + get_z(indices)) : def,
-                      get_w(mask) ? *(base + get_w(indices)) : def);
+                      get_y(mask) ? *(base + get_y(indices)) : def,
+                      get_x(mask) ? *(base + get_x(indices)) : def);
 }
 void simd_fscatter_int32_masked(float *base, simd_int32 indices, simd_float values, simd_mask mask) {
     uint32_t lane0 = get_x(mask);
