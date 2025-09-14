@@ -77,6 +77,7 @@ void simd_fscatter_int32_masked(float *base, simd_int32 indices, simd_float valu
     uint32_t lane3 = get_w(mask);
     if (lane3) *(base + get_w(indices)) = simd_fget_lane(values, 3);
 }
+
 void simd_iscatter_scalar_int32_masked(int *base, simd_int32 indices, int value, simd_mask mask) {
     uint32_t lane0 = get_x(mask);
     if (lane0) *(base + get_x(indices)) = value;
@@ -89,7 +90,7 @@ void simd_iscatter_scalar_int32_masked(int *base, simd_int32 indices, int value,
 }
 
 
-#define SIMD_INCREASING (_mm_set_ps(0, 1, 2, 3))
+#define SIMD_INCREASING (_mm_set_ps(3, 2, 1, 0))
 #define SIMD_ITERATE_LANES(__LOOP__) \
     __LOOP__(0); \
     __LOOP__(1); \
