@@ -13,7 +13,7 @@ using simd_int32 = __m128i;
 using simd_mask = __m128i;
 constexpr simd_float (*simd_fexp)(simd_float) = sse_mathfun_exp_ps;
 constexpr simd_float (*simd_fbroadcast)(float val) = _mm_set_ps1;
-#define simd_fget_lane(val, lane) (_mm_cvtss_f32(_mm_shuffle_ps((val), _MM_SHUFFLE(0, 0, 0, (lane)))))
+#define simd_fget_lane(val, lane) (_mm_cvtss_f32(_mm_shuffle_ps((val), (val), _MM_SHUFFLE(0, 0, 0, (lane)))))
 constexpr simd_float (*simd_fadd)(simd_float a, simd_float b) = _mm_add_ps;
 constexpr simd_float (*simd_fsub)(simd_float a, simd_float b) = _mm_sub_ps;
 constexpr simd_float (*simd_fmul)(simd_float a, simd_float b) = _mm_mul_ps;
