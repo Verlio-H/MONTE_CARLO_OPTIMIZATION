@@ -229,7 +229,7 @@ double price_american_put_lsm_cpp(
     std::mt19937_64 rng(seed);
     std::normal_distribution<float> dist(0.0, 1.0);
 
-    std::vector<float> S(num_paths * num_steps);
+    float *S = (float *)aligned_alloc(simd_width_float * sizeof(float), num_paths * num_steps * sizeof(float));
 
     const float factor1 = (r - 0.5 * sigma * sigma) * dt;
     const float factor2 = sigma * std::sqrt(dt);
@@ -243,40 +243,43 @@ double price_american_put_lsm_cpp(
         }
     }
 
-    std::vector<float> exp_vals(num_steps);
+    float *exp_vals = (float *)aligned_alloc(simd_width_float * sizeof(float), num_steps * sizeof(float));
 
     for (int i = 0; i < num_steps; i += simd_width_float) {
         simd_float offset = simd_fadd(simd_increasing, simd_fbroadcast(i));
         simd_float input = simd_fmul(simd_fbroadcast(-r * dt), offset);
-        *(simd_float *)(exp_vals.data() + i) = simd_fexp(input);
+        *(simd_float *)(exp_vals + i) = simd_fexp(input);
     }
 
-    std::vector<float> last_cash_flow(num_paths);
-    std::vector<int32_t> time_cash_flow(num_paths, num_steps - 1);
+    float *last_cash_flow = (float *)aligned_alloc(simd_width_float * sizeof(float), num_paths * sizeof(float));
+    int32_t *time_cash_flow = (int32_t *)aligned_alloc(simd_width_int32 * sizeof(int32_t), num_paths * sizeof(int32_t));
+    for (int i = 0; i < num_paths; ++i) {
+        time_cash_flow[i] = num_steps - 1;
+    }
 
     const simd_float simd_K = simd_fbroadcast(K);
     const simd_float simd_0 = simd_fbroadcast(0);
     for (int i = 0; i < num_paths; i += simd_width_float) {
-        simd_float simd_S = *(simd_float *)(S.data() + (num_steps - 1) * num_paths + i);
-        *(simd_float *)(last_cash_flow.data() + i) = simd_fmax(simd_0, simd_fsub(simd_K, simd_S));
+        simd_float simd_S = *(simd_float *)(S + (num_steps - 1) * num_paths + i);
+        *(simd_float *)(last_cash_flow + i) = simd_fmax(simd_0, simd_fsub(simd_K, simd_S));
     }
 
-    int *in_the_money_paths = (int *)malloc(num_paths * sizeof(int));
+    int *in_the_money_paths = (int *)aligned_alloc(simd_width_int32 * sizeof(int), num_paths * sizeof(int));
     #ifdef USE_APPLE_AMX
         float *x_itm = (float *)aligned_alloc(128, (num_paths * sizeof(float) + 127) & ~127);
         float *y_itm = (float *)aligned_alloc(128, (num_paths * sizeof(float) + 127) & ~127);
     #else
-        float *x_itm = (float *)malloc(num_paths * sizeof(float));
-        float *y_itm = (float *)malloc(num_paths * sizeof(float));
+        float *x_itm = (float *)aligned_alloc(simd_width_float * sizeof(float), num_paths * sizeof(float));
+        float *y_itm = (float *)aligned_alloc(simd_width_float * sizeof(float), num_paths * sizeof(float));
     #endif
     for (int t = num_steps - 2; t >= 0; --t) {
         size_t in_the_money_count = 0;
         for (int i = 0; (simd_width_int32 == simd_width_float) && i < num_paths; i += simd_width_float) {
-            simd_float simd_S = *(simd_float *)(S.data() + t * num_paths + i);
+            simd_float simd_S = *(simd_float *)(S + t * num_paths + i);
             simd_mask mask = simd_fgt_mask(simd_fsub(simd_K, simd_S), simd_0);
-            simd_int32 exp_indices = *(simd_int32 *)(time_cash_flow.data() + i);
-            simd_float last = *(simd_float *)(last_cash_flow.data() + i);
-            simd_float future_cf = simd_fmul(last, simd_fgather_int32_masked(exp_vals.data() - t, exp_indices, std::nanf(""), mask)); 
+            simd_int32 exp_indices = *(simd_int32 *)(time_cash_flow + i);
+            simd_float last = *(simd_float *)(last_cash_flow + i);
+            simd_float future_cf = simd_fmul(last, simd_fgather_int32_masked(exp_vals - t, exp_indices, std::nanf(""), mask)); 
 
             #define PATHS_UPDATE_LOOP(__LANE__) do { \
                 float future = simd_fget_lane(future_cf, __LANE__); \
@@ -312,12 +315,12 @@ double price_american_put_lsm_cpp(
             simd_int32 path_idx = *(simd_int32 *)(in_the_money_paths + i);
             simd_float x_val = *(simd_float *)(x_itm + i);
             simd_float continuation_value = simd_fadd(simd_fmul(simd_fmul(x_val, x_val), simd_c2), simd_fadd(simd_fmul(x_val, simd_c1), simd_c0));
-            simd_float simd_S = simd_fgather_int32(S.data() + t * num_paths, path_idx);
+            simd_float simd_S = simd_fgather_int32(S + t * num_paths, path_idx);
             simd_float intrinsic_value = simd_fmax(simd_0, simd_fsub(simd_K, simd_S));
 
             simd_mask mask = simd_fgt_mask(intrinsic_value, continuation_value);
-            simd_fscatter_int32_masked(last_cash_flow.data(), path_idx, intrinsic_value, mask);
-            simd_iscatter_scalar_int32_masked(time_cash_flow.data(), path_idx, t, mask);
+            simd_fscatter_int32_masked(last_cash_flow, path_idx, intrinsic_value, mask);
+            simd_iscatter_scalar_int32_masked(time_cash_flow, path_idx, t, mask);
         }
         for (;(simd_width_float != 1 || simd_width_int32 != simd_width_float) && i < in_the_money_count; ++i) {
             int path_idx = in_the_money_paths[i];
@@ -335,6 +338,8 @@ double price_american_put_lsm_cpp(
     free(x_itm);
     free(y_itm);
 
+    free(S);
+
     float total_payoff = 0.0;
     if (simd_width_int32 != simd_width_float) {
         for (int i = 0; i < num_paths; ++i) {
@@ -342,13 +347,17 @@ double price_american_put_lsm_cpp(
         }
     } else {
         for (int i = 0; i < num_paths; i += simd_width_int32) {
-            simd_int32 simd_time_cash_flow = *(simd_int32 *)(time_cash_flow.data() + i);
-            simd_float simd_exp_vals = simd_fgather_int32(exp_vals.data(), simd_time_cash_flow);
-            simd_float simd_last_cash_flow = *(simd_float *)(last_cash_flow.data() + i);
+            simd_int32 simd_time_cash_flow = *(simd_int32 *)(time_cash_flow + i);
+            simd_float simd_exp_vals = simd_fgather_int32(exp_vals, simd_time_cash_flow);
+            simd_float simd_last_cash_flow = *(simd_float *)(last_cash_flow + i);
             simd_float payouts = simd_fmul(simd_last_cash_flow, simd_exp_vals);
             total_payoff += simd_fhadd(payouts);
         }
     }
+
+    free(time_cash_flow);
+    free(last_cash_flow);
+    free(exp_vals);
 
     return total_payoff / num_paths;
 }
