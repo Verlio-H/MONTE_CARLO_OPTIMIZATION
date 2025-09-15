@@ -20,6 +20,9 @@
 
     #define USE_ARM_NEON
     #include "simd/neon.h"
+#elif defined(__AVX512F__)
+    #define USE_INTEL_AVX512
+    #include "simd/avx512.h"
 #elif defined(__AVX__)
     #define USE_INTEL_AVX
     #include "simd/avx.h"
