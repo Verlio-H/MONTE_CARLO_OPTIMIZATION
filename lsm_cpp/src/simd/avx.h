@@ -72,7 +72,7 @@ float simd_fhadd(simd_float x) {
 
 simd_float simd_fgather_int32(float const *base, simd_int32 indices) {
 #ifdef __AVX2__
-    return _mm256_i32gather_ps(base, indices, 1);
+    return _mm256_i32gather_ps(base, indices, 4);
 #else
     return _mm256_set_ps(*(base + extract(indices, 7)),
                          *(base + extract(indices, 6)),
@@ -87,7 +87,7 @@ simd_float simd_fgather_int32(float const *base, simd_int32 indices) {
 
 simd_float simd_fgather_int32_masked(float const *base, simd_int32 indices, float def, simd_mask mask) {
 #ifdef __AVX2__
-    return _mm256_mask_i32gather_ps(simd_fbroadcast(def), base, indices, (__m256)mask, 1);
+    return _mm256_mask_i32gather_ps(simd_fbroadcast(def), base, indices, (__m256)mask, 4);
 #else
     return _mm256_set_ps(extract(mask, 7) ? *(base + extract(indices, 7)) : def,
                          extract(mask, 6) ? *(base + extract(indices, 6)) : def,
