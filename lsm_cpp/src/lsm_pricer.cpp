@@ -314,7 +314,7 @@ double price_american_put_lsm_cpp(
         simd_float simd_c1 = simd_fbroadcast(coeffs.c1);
         simd_float simd_c2 = simd_fbroadcast(coeffs.c2);
         size_t i = 0;
-        for (; false && (simd_width_int32 == simd_width_float) && i <= in_the_money_count - simd_width_float; i += simd_width_float) {
+        for (;(simd_width_int32 == simd_width_float) && i <= in_the_money_count - simd_width_float; i += simd_width_float) {
             simd_int32 path_idx = *(simd_int32 *)(in_the_money_paths + i);
             simd_float x_val = *(simd_float *)(x_itm + i);
             simd_float continuation_value = simd_fadd(simd_fmul(simd_fmul(x_val, x_val), simd_c2), simd_fadd(simd_fmul(x_val, simd_c1), simd_c0));
