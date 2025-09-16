@@ -25,18 +25,18 @@ simd_mask simd_fgt_mask(simd_float a, simd_float b) {
 constexpr float (*simd_fhadd)(simd_float x) = _mm512_reduce_add_ps;
 
 simd_float simd_fgather_int32(float const *base, simd_int32 indices) {
-    return _mm512_i32gather_ps(indices, base, 1);
+    return _mm512_i32gather_ps(indices, base, 4);
 }
 
 simd_float simd_fgather_int32_masked(float const *base, simd_int32 indices, float def, simd_mask mask) {
-    return _mm512_mask_i32gather_ps(simd_fbroadcast(def), mask, indices, (__m512 *)base, 1);
+    return _mm512_mask_i32gather_ps(simd_fbroadcast(def), mask, indices, (__m512 *)base, 4);
 }
 
 void simd_fscatter_int32_masked(float *base, simd_int32 indices, simd_float values, simd_mask mask) {
-    _mm512_mask_i32scatter_ps((__m512 *)base, mask, indices, values, 1);
+    _mm512_mask_i32scatter_ps((__m512 *)base, mask, indices, values, 4);
 }
 void simd_iscatter_scalar_int32_masked(int *base, simd_int32 indices, int value, simd_mask mask) {
-    _mm512_mask_i32scatter_epi32((__m512 *)base, mask, indices, _mm512_set1_epi32(value), 1);
+    _mm512_mask_i32scatter_epi32((__m512 *)base, mask, indices, _mm512_set1_epi32(value), 4);
 }
 
 #define SIMD_INCREASING (_mm512_set_ps(15, 14, 13, 12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1, 0))
